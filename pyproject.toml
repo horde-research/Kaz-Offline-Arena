@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "kazofflinearena"
+version = "0.1.0"
+description = ""
+authors = ["Kirill Yakunin <yakunin.k@mail.ru>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fire = "^0.7.0"
+pandas = "^2.2.3"
+transformers = "^4.49.0"
+torch = "^2.6.0"
+openai = "^1.64.0"
+tenacity = "^9.0.0"
+pydantic = "^2.10.6"
+openpyxl = "^3.1.5"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
