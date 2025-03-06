@@ -8,7 +8,14 @@ from typing import Literal
 import openai
 import pandas as pd
 import torch
+from dotenv import load_dotenv
+from huggingface_hub.hf_api import HfFolder
 from transformers import AutoModelForCausalLM, AutoTokenizer
+
+load_dotenv()
+
+if "HUGGINGFACE_TOKEN" in os.environ:
+    HfFolder.save_token(os.environ["HUGGINGFACE_TOKEN"])
 
 
 def save_results(

@@ -11,6 +11,10 @@ Install dependencies with Poetry:
 poetry install
 ```
 
+## Env vars
+Copy .env.template and fill in the required values
+
+
 ## Upload-download data
 ```bash
 curl --progress-bar -F "file=@Arena_QS_updated.zip" https://0x0.st
