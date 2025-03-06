@@ -28,15 +28,15 @@ unzip <filename>.zip -d .
 Run inference:
 
 ```bash
-poetry run python src/main.py inference --model_id="huggingface/llama-3.1" --tasks_csv="tasks.csv" --sample_lines=50 --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --sample_qs=2 --batch_size=4
+poetry run python main.py inference --model_id="meta-llama/Llama-3.2-3B-Instruct" --tasks_csv="Arena_QS_updated.csv" --sample_lines=50 --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --sample_qs=2 --batch_size=10
 ```
 
 Run judge evaluations:
 ```bash
-poetry run python src/main.py judge
+poetry run python main.py judge
 ```
 
 Compute ELO leaderboard:
 ```bash
-poetry run python src/main.py leaderboard
+poetry run python main.py leaderboard
 ```

@@ -7,13 +7,17 @@ import judge
 
 def inference_cmd(
     model_id: str,
-    tasks_csv: str = "tasks.csv",
-    sample_lines: int = 100,
+    tasks_csv: str,
+    sample_lines: int,
     question_types: str = "WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS",
-    sample_qs: int = 0,
+    sample_qs: int = 1,
     batch_size: int = 4,
 ):
-    qtypes = [qt.strip() for qt in question_types.split(",") if qt.strip()]
+    if isinstance(question_types, str):
+        question_types = question_types.split(",")
+    else:
+        question_types = list(question_types)
+    qtypes = [qt.strip() for qt in question_types if qt.strip()]
     results = inference.run_inference(
         tasks_csv, model_id, sample_lines, qtypes, sample_qs, batch_size
     )
