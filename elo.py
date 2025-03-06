@@ -1,6 +1,7 @@
 import json
 import os
 from collections import defaultdict
+from glob import glob
 
 import pandas as pd
 
@@ -14,18 +15,25 @@ def update_elo(rating_a, rating_b, outcome, k=32):
 
 
 def compute_elo():
-    judge_path = os.path.join("output", "judge", "judge_results.json")
-    with open(judge_path) as f:
-        judge_results = json.load(f)
-    # Group by task_id so that each row with multiple QS evaluations is compared pairwise.
+    judge_files = glob(os.path.join("output", "judge", "judge_results_*.json"))
+    if not judge_files:
+        print("No judge result files found.")
+        return pd.DataFrame()
+    all_judge_results = []
+    print(f"Found {len(judge_files)} judge file(s).")
+    for file in judge_files:
+        print(f"Loading judge results from {file}...")
+        with open(file) as f:
+            data = json.load(f)
+            all_judge_results.extend(data)
+    print(f"Total judge records loaded: {len(all_judge_results)}")
     grouped = {}
-    for rec in judge_results:
+    for rec in all_judge_results:
         tid = rec["task_id"]
         if tid not in grouped:
             grouped[tid] = []
         grouped[tid].append(rec)
     ratings = defaultdict(lambda: 1500)
-    # For each task with multiple QS outputs, compare pairwise based on score.
     for recs in grouped.values():
         if len(recs) < 2:
             continue
@@ -33,14 +41,12 @@ def compute_elo():
             for j in range(i + 1, len(recs)):
                 score_i = recs[i]["judge"].get("score", 0)
                 score_j = recs[j]["judge"].get("score", 0)
-                # if equal, consider it a draw
                 if score_i == score_j:
                     outcome_i = 0.5
                 elif score_i > score_j:
                     outcome_i = 1
                 else:
                     outcome_i = 0
-                # Update ratings pairwise
                 qt_i = recs[i]["question_type"]
                 qt_j = recs[j]["question_type"]
                 r_i, r_j = ratings[qt_i], ratings[qt_j]
@@ -56,6 +62,10 @@ def compute_elo():
 def save_leaderboard(leaderboard):
     out_dir = os.path.join("output", "elo")
     os.makedirs(out_dir, exist_ok=True)
-    out_file = os.path.join(out_dir, "leaderboard.xlsx")
+    from datetime import datetime
+
+    dt = datetime.now().strftime("%Y%m%d-%H%M%S")
+    out_file = os.path.join(out_dir, f"leaderboard_{dt}.xlsx")
     leaderboard.to_excel(out_file, index=False)
+    print(f"Saved leaderboard to {out_file}")
     return out_file
