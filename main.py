@@ -1,5 +1,8 @@
 import fire
-from src import elo, inference, judge
+
+import elo
+import inference
+import judge
 
 
 def inference_cmd(

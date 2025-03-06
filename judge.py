@@ -13,7 +13,7 @@ class JudgeOutput(BaseModel):
 
 
 @retry(wait=wait_fixed(5), stop=stop_after_attempt(10))
-def call_judge(prompt: str, model: str = "gpt-4") -> str:
+def call_judge(prompt: str, model: str = "gpt-4o") -> str:
     response = openai.ChatCompletion.create(
         model=model,
         messages=[

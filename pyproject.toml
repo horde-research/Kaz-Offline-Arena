@@ -6,7 +6,7 @@ authors = ["Kirill Yakunin <yakunin.k@mail.ru>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.10"
 fire = "^0.7.0"
 pandas = "^2.2.3"
 transformers = "^4.49.0"
