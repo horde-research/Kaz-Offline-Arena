@@ -11,6 +11,18 @@ Install dependencies with Poetry:
 poetry install
 ```
 
+## Upload-download data
+```bash
+curl --progress-bar -F "file=@Arena_QS_updated.zip" https://0x0.st
+```
+
+Then copy response URL and download the file and unzip it
+```bash
+wget <your_public_url>
+unzip Arena_QS_updated.zip -d .
+````
+
+
 ## Commands
 
 Run inference:
