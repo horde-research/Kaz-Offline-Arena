@@ -182,15 +182,19 @@ def run_inference_huggingface(
             ]
             for prompt in batch_prompts
         ]
-        encodings = tokenizer(
-            chat_inputs, return_tensors="pt", padding=True, truncation=True
+        formatted_inputs = tokenizer.apply_chat_template(
+            chat_inputs,
+            tokenize=True,
+            padding=True,
+            truncation=True,
+            return_tensors="pt",
         )
-        encodings = {k: v.to(device) for k, v in encodings.items()}
+        formatted_inputs = {k: v.to(device) for k, v in formatted_inputs.items()}
         with torch.no_grad():
-            out_ids = model.generate(**encodings, **generation_config).squeeze()
+            out_ids = model.generate(**formatted_inputs, **generation_config).squeeze()
         for j in range(len(batch_prompts)):
-            prompt_length = encodings["input_ids"][j].shape[0]
-            generated_tokens = out_ids[j][prompt_length:]
+            input_length = formatted_inputs["input_ids"][j].shape[0]
+            generated_tokens = out_ids[j][input_length:]
             out_text = tokenizer.decode(generated_tokens, skip_special_tokens=True)
             rec = mapping[i * batch_size + j]
             rec["output"] = out_text
