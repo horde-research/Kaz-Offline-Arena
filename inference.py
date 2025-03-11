@@ -139,6 +139,7 @@ def run_inference_huggingface(
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(model_id)
+    model.generation_config.pad_token_id = tokenizer.pad_token_id
     model.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
