@@ -139,9 +139,7 @@ def run_inference_huggingface(
     if sample_lines and sample_lines < len(df):
         df = df.sample(n=sample_lines, random_state=random_seed)
         print(f"Sampled {sample_lines} lines from {len(df)} total lines.")
-    mapping, prompts, sampled_ids = sample_questions(
-        df, question_types, sample_qs, random_seed
-    )
+    mapping, prompts, _ = sample_questions(df, question_types, sample_qs, random_seed)
     print(f"Generated {len(prompts)} prompts for inference.")
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     tokenizer.pad_token = tokenizer.eos_token
@@ -189,11 +187,17 @@ def run_inference_huggingface(
             truncation=True,
             return_tensors="pt",
         )
-        formatted_inputs = {k: v.to(device) for k, v in formatted_inputs.items()}
+        if isinstance(formatted_inputs, dict):
+            formatted_inputs = {k: v.to(device) for k, v in formatted_inputs.items()}
+        else:
+            formatted_inputs = formatted_inputs.to(device)
         with torch.no_grad():
             out_ids = model.generate(**formatted_inputs, **generation_config).squeeze()
         for j in range(len(batch_prompts)):
-            input_length = formatted_inputs["input_ids"][j].shape[0]
+            if isinstance(formatted_inputs, dict) and "input_ids" in formatted_inputs:
+                input_length = formatted_inputs["input_ids"][j].shape[0]
+            else:
+                input_length = formatted_inputs[j].shape[0]
             generated_tokens = out_ids[j][input_length:]
             out_text = tokenizer.decode(generated_tokens, skip_special_tokens=True)
             rec = mapping[i * batch_size + j]
