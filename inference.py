@@ -59,6 +59,7 @@ Answer the question in Kazakh language, use information provided in the context.
             mapping.append(
                 {
                     "task_id": idx,
+                    "question": qt,
                     "question_type": qt,
                     "context": context,
                     "prompt": prompt,
