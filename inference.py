@@ -192,7 +192,14 @@ def run_inference_huggingface(
         else:
             formatted_inputs = formatted_inputs.to(device)
         with torch.no_grad():
-            out_ids = model.generate(**formatted_inputs, **generation_config).squeeze()
+            if isinstance(formatted_inputs, dict):
+                out_ids = model.generate(
+                    **formatted_inputs, **generation_config
+                ).squeeze()
+            else:
+                out_ids = model.generate(
+                    formatted_inputs, **generation_config
+                ).squeeze()
         for j in range(len(batch_prompts)):
             if isinstance(formatted_inputs, dict) and "input_ids" in formatted_inputs:
                 input_length = formatted_inputs["input_ids"][j].shape[0]
