@@ -49,7 +49,12 @@ def sample_questions(
         else:
             chosen = available
         for qt in chosen:
-            prompt = f"Context: {context}\nQuestion ({qt}): {row[qt]}"
+            prompt = f"""
+Context: {context}
+Question ({qt}): {row[qt]}
+
+Answer the question in Kazakh language, use information provided in the context.
+"""
             prompts.append(prompt)
             mapping.append(
                 {

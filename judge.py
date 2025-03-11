@@ -38,8 +38,9 @@ def call_judge(prompt: str, model: str = "gpt-4o") -> str:
             {
                 "role": "system",
                 "content": (
-                    "You are an expert evaluator. For the given context, question, and model response, "
-                    "evaluate the quality of the response. Provide a chain-of-thought explanation and assign a score between 0 and 100. "
+                    "You are an expert evaluator with deep knowledge of Kazakh language, culture, history and context of Kazakhstan. "
+                    "For the given context, question, and model response, "
+                    "evaluate the quality of the response. Provide an explanation and assign a score between 0 and 100. "
                     "Return a JSON object with keys 'explanation' and 'score'."
                 ),
             },
@@ -52,10 +53,10 @@ def call_judge(prompt: str, model: str = "gpt-4o") -> str:
 
 def judge_single(record: dict) -> dict:
     prompt = (
-        f"Context: {record['context']}\n"
-        f"Question ({record['question_type']}): Extracted from CSV.\n"
-        f"Response: {record['output']}\n\n"
-        "Evaluate the response and return a JSON object with keys 'explanation' (chain-of-thought) and 'score' (integer 0-100)."
+        f"**Context**: {record['context']}\n\n"
+        f"**Question**: ({record['question_type']})\n\n"
+        f"**Response**: {record['output']}\n\n"
+        "Evaluate the response to the question based on context and return a JSON object with keys 'explanation' and 'score' (integer 0-100)."
     )
     try:
         resp = call_judge(prompt)
