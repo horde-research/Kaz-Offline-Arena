@@ -40,7 +40,12 @@ def call_judge(prompt: str, model: str = "gpt-4o") -> str:
                 "content": (
                     "You are an expert evaluator with deep knowledge of Kazakh language, culture, history and context of Kazakhstan. "
                     "For the given context, question, and model response, "
-                    "evaluate the quality of the response. Provide an explanation and assign a score between 0 and 100. "
+                    "evaluate the quality of the response. Provide an explanation and assign a score between 0 and 10. "
+                    "0 is completely irrelevant and unhelpful"
+                    "3 is partially relevant and helpful, but incorrect"
+                    "5 is somewhat relevant and helpful, but not fully correct"
+                    "7 is mostly relevant and helpful, but with some issues"
+                    "10 is completely relevant and helpful, with no issues"
                     "Return a JSON object with keys 'explanation' and 'score'."
                 ),
             },
@@ -56,7 +61,7 @@ def judge_single(record: dict) -> dict:
         f"**Context**: {record['context']}\n\n"
         f"**Question**: ({record['question_type']})\n\n"
         f"**Response**: {record['output']}\n\n"
-        "Evaluate the response to the question based on context and return a JSON object with keys 'explanation' and 'score' (integer 0-100)."
+        "Evaluate the response to the question based on context and return a JSON object with keys 'explanation' and 'score' (integer 0-10)."
     )
     try:
         resp = call_judge(prompt)
