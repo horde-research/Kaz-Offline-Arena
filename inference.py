@@ -187,9 +187,6 @@ def run_inference_huggingface(
             truncation=True,
             return_tensors="pt",
         )
-        formatted_inputs["attention_mask"] = (
-            (formatted_inputs["input_ids"] != tokenizer.pad_token_id).long().to(device)
-        )
         formatted_inputs = {k: v.to(device) for k, v in formatted_inputs.items()}
         with torch.no_grad():
             out_ids = model.generate(**formatted_inputs, **generation_config)
