@@ -151,7 +151,7 @@ def run_inference_huggingface(
     model.to(device)
 
     generation_config = {
-        "do_sample": False,
+        "do_sample": True,
         "max_new_tokens": 256,
         "num_beams": 1,
         "repetition_penalty": 1.0,
