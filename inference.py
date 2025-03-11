@@ -153,7 +153,6 @@ def run_inference_huggingface(
     generation_config = {
         "do_sample": False,
         "temperature": 0,
-        "top_p": 0.75,
         "max_new_tokens": 256,
         "num_beams": 1,
         "repetition_penalty": 1.0,
