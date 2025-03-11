@@ -138,6 +138,7 @@ def run_inference_huggingface(
     print(f"Generated {len(prompts)} prompts for inference.")
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.padding_side = "left"
     model = AutoModelForCausalLM.from_pretrained(model_id)
     model.generation_config.pad_token_id = tokenizer.pad_token_id
     model.eval()
