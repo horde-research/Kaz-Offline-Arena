@@ -189,7 +189,7 @@ def run_inference_huggingface(
         )
         formatted_inputs = formatted_inputs.to(device)
         with torch.no_grad():
-            out_ids = model.generate(**formatted_inputs, **generation_config)
+            out_ids = model.generate(formatted_inputs, **generation_config)
             if out_ids.ndim == 1:
                 out_ids = out_ids.unsqueeze(0)
         for j in range(len(batch_prompts)):
