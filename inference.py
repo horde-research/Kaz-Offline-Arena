@@ -153,7 +153,8 @@ def run_inference_huggingface(
         )
         encodings = tokenizer(batch_prompts, return_tensors="pt", padding=True)
         encodings = {k: v.to(device) for k, v in encodings.items()}
-        generated = model.generate(**encodings, max_new_tokens=256)
+        with torch.no_grad():
+            generated = model.generate(**encodings, max_new_tokens=256)
         decoded = tokenizer.batch_decode(generated, skip_special_tokens=True)
         for j, out in enumerate(decoded):
             rec = mapping[i * batch_size + j]
