@@ -187,7 +187,7 @@ def run_inference_huggingface(
             truncation=True,
             return_tensors="pt",
         )
-        formatted_inputs = {k: v.to(device) for k, v in formatted_inputs.items()}
+        formatted_inputs = formatted_inputs.to(device)
         with torch.no_grad():
             out_ids = model.generate(**formatted_inputs, **generation_config)
             if out_ids.ndim == 1:
