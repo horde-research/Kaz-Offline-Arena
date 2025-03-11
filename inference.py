@@ -153,6 +153,7 @@ def run_inference_huggingface(
     generation_config = {
         "do_sample": False,
         "temperature": 0,
+        "top_p": 0.75,
         "max_new_tokens": 256,
         "num_beams": 1,
         "repetition_penalty": 1.0,
@@ -186,24 +187,16 @@ def run_inference_huggingface(
             truncation=True,
             return_tensors="pt",
         )
-        if isinstance(formatted_inputs, dict):
-            formatted_inputs = {k: v.to(device) for k, v in formatted_inputs.items()}
-        else:
-            formatted_inputs = formatted_inputs.to(device)
+        formatted_inputs["attention_mask"] = (
+            (formatted_inputs["input_ids"] != tokenizer.pad_token_id).long().to(device)
+        )
+        formatted_inputs = {k: v.to(device) for k, v in formatted_inputs.items()}
         with torch.no_grad():
-            if isinstance(formatted_inputs, dict):
-                out_ids = model.generate(
-                    **formatted_inputs, **generation_config
-                ).squeeze()
-            else:
-                out_ids = model.generate(
-                    formatted_inputs, **generation_config
-                ).squeeze()
+            out_ids = model.generate(**formatted_inputs, **generation_config)
+            if out_ids.ndim == 1:
+                out_ids = out_ids.unsqueeze(0)
         for j in range(len(batch_prompts)):
-            if isinstance(formatted_inputs, dict) and "input_ids" in formatted_inputs:
-                input_length = formatted_inputs["input_ids"][j].shape[0]
-            else:
-                input_length = formatted_inputs[j].shape[0]
+            input_length = formatted_inputs["input_ids"][j].shape[0]
             generated_tokens = out_ids[j][input_length:]
             out_text = tokenizer.decode(generated_tokens, skip_special_tokens=True)
             rec = mapping[i * batch_size + j]
