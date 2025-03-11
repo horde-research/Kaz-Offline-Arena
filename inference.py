@@ -186,8 +186,25 @@ def run_inference_huggingface(
             return_tensors="pt",
         )
         formatted_inputs = formatted_inputs.to(device)
+        attention_masks = []
+        for input_ids in formatted_inputs:
+            number_of_padding = 0
+            for token_id in input_ids:
+                if token_id == tokenizer.pad_token_id:
+                    number_of_padding += 1
+                else:
+                    break
+            attention_masks.append(
+                [0] * number_of_padding + [1] * (len(input_ids) - number_of_padding)
+            )
         with torch.no_grad():
-            out_ids = model.generate(formatted_inputs, **generation_config)
+            out_ids = model.generate(
+                **{
+                    "input_ids": formatted_inputs,
+                    "attention_mask": attention_masks,
+                },
+                **generation_config,
+            )
             if out_ids.ndim == 1:
                 out_ids = out_ids.unsqueeze(0)
         for j in range(len(batch_prompts)):
