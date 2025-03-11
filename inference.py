@@ -152,8 +152,6 @@ def run_inference_huggingface(
 
     generation_config = {
         "do_sample": False,
-        "temperature": 0,
-        "top_p": 0.75,
         "max_new_tokens": 256,
         "num_beams": 1,
         "repetition_penalty": 1.0,
@@ -193,9 +191,10 @@ def run_inference_huggingface(
             if out_ids.ndim == 1:
                 out_ids = out_ids.unsqueeze(0)
         for j in range(len(batch_prompts)):
-            input_length = formatted_inputs["input_ids"][j].shape[0]
+            input_length = formatted_inputs[j].shape[0]
             generated_tokens = out_ids[j][input_length:]
-            out_text = tokenizer.decode(generated_tokens, skip_special_tokens=True)
+            out_text = tokenizer.decode(generated_tokens, skip_special_tokens=False)
+            out_text = out_text[len("assistant") :].strip()
             rec = mapping[i * batch_size + j]
             rec["output"] = out_text
             rec["model"] = sanitize_model_name(model_id)
