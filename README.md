@@ -32,7 +32,7 @@ unzip <filename>.zip -d .
 Run inference:
 
 ```bash
-poetry run python main.py inference --model_id="meta-llama/Llama-3.2-3B-Instruct" --tasks_csv="Arena_QS_updated.csv" --sample_lines=50 --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --sample_qs=2 --batch_size=10
+poetry run python main.py inference --model_id="meta-llama/Llama-3.2-3B-Instruct" --tasks_csv="Arena_QS_updated_filtered.csv" --sample_lines=50 --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --sample_qs=2 --batch_size=10
 ```
 
 Run judge evaluations:
