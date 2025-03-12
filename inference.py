@@ -197,7 +197,7 @@ def run_inference_huggingface(
             attention_masks.append(
                 [0] * number_of_padding + [1] * (len(input_ids) - number_of_padding)
             )
-            attention_masks = torch.tensor(attention_masks).to(device)
+        attention_masks = torch.tensor(attention_masks).to(device)
         with torch.no_grad():
             out_ids = model.generate(
                 **{
