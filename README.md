@@ -9,7 +9,6 @@ Install dependencies with Poetry:
 
 ```bash
 poetry install
-pip install flash-attn --no-build-isolation
 ```
 
 ## Env vars
