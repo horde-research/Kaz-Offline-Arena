@@ -211,7 +211,7 @@ def run_inference_huggingface(
         for j in range(len(batch_prompts)):
             input_length = formatted_inputs[j].shape[0]
             generated_tokens = out_ids[j][input_length:]
-            out_text = tokenizer.decode(generated_tokens, skip_special_tokens=False)
+            out_text = tokenizer.decode(generated_tokens, skip_special_tokens=True)
             out_text = out_text[len("assistant") :].strip()
             rec = mapping[i * batch_size + j]
             rec["output"] = out_text
