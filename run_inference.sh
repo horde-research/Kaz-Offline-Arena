@@ -1,6 +1,8 @@
 #!/bin/bash
+mkdir -p ./logs
+
 models=(
-  "armanibadboy/armanibadboy/llama3.2-kazllm-3b-by-arman"
+  "armanibadboy/llama3.2-kazllm-3b-by-arman"
   "meta-llama/Llama-3.2-1B-Instruct"
   "TilQazyna/llama-kaz-instruct-8B-1"
   "google/gemma-2-2b-it"
@@ -17,7 +19,7 @@ models=(
 for model in "${models[@]}"; do
   ts=$(date '+%Y%m%d_%H%M%S')
   safe_model=${model//\//_}
-  log_file="${safe_model}_${ts}.log"
+  log_file="./logs/${safe_model}_${ts}.log"
   echo "Running model: ${model}" | tee "${log_file}"
   original_batch=50
   batch_size=${original_batch}
@@ -28,7 +30,7 @@ for model in "${models[@]}"; do
     echo "Command: ${cmd}" | tee -a "${log_file}"
     output=$(eval ${cmd} 2>&1 | tee -a "${log_file}")
     exit_code=${PIPESTATUS[0]}
-    if [ ${exit_code} -eq 0 ]; then
+    if [ ${exit_code} -eq 0 ] && ! echo "$output" | grep -q "ValueError:" ; then
       echo "Command succeeded on attempt ${attempt}" | tee -a "${log_file}"
       break
     fi
