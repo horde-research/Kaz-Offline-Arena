@@ -144,10 +144,6 @@ def run_inference_huggingface(
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
-    if "google" in model_id:
-        import torch._dynamo
-
-        torch._dynamo.config.suppress_errors = True
     model = AutoModelForCausalLM.from_pretrained(
         model_id, torch_dtype=torch.bfloat16, attn_implementation="flash_attention_2"
     )
