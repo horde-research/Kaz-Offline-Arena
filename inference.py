@@ -145,9 +145,7 @@ def run_inference_huggingface(
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
     model = AutoModelForCausalLM.from_pretrained(
-        model_id,
-        torch_dtype=torch.bfloat16,
-        attn_implementation="sdpa",
+        model_id, torch_dtype=torch.bfloat16, attn_implementation="flash_attention_2"
     )
     model.generation_config.pad_token_id = tokenizer.pad_token_id
     model.eval()
