@@ -1,7 +1,17 @@
 #!/bin/bash
 models=(
-  "meta/Lllam-3.1-8B"
-  "meta/Lllam-3.1-70B"
+  "armanibadboy/armanibadboy/llama3.2-kazllm-3b-by-arman"
+  "meta-llama/Llama-3.2-1B-Instruct"
+  "TilQazyna/llama-kaz-instruct-8B-1"
+  "google/gemma-2-2b-it"
+  "AmanMussa/llama2-kazakh-7b"
+  "IrbisAI/Irbis-7b-v0.1"
+  "armanibadboy/llama3.1-kazllm-8b-by-arman-ver2"
+  "meta-llama/Llama-3.2-3B-Instruct"
+  "Qwen/Qwen2.5-7B-Instruct"
+  "meta-llama/Llama-3.1-8B-Instruct"
+  "google/gemma-2-9b-it"
+  "issai/LLama-3.1-KazLLM-1.0-8B"
 )
 
 for model in "${models[@]}"; do
@@ -9,7 +19,7 @@ for model in "${models[@]}"; do
   safe_model=${model//\//_}
   log_file="${safe_model}_${ts}.log"
   echo "Running model: ${model}" | tee "${log_file}"
-  original_batch=10
+  original_batch=50
   batch_size=${original_batch}
   attempt=1
   while true; do
