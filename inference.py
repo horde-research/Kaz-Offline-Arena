@@ -180,8 +180,10 @@ def run_inference_huggingface(
             ]
             for prompt in batch_prompts
         ]
+        default_chat_template = {"messages": [{"role": "user", "content": "{user}"}]}
         formatted_inputs = tokenizer.apply_chat_template(
             chat_inputs,
+            chat_template=default_chat_template,
             tokenize=True,
             padding=True,
             truncation=True,
