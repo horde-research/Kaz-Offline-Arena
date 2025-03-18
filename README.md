@@ -10,6 +10,12 @@ Install dependencies with Poetry:
 ```bash
 poetry install
 poetry shell
+```
+
+## Install Flash Attention
+```bash
+wget https://developer.download.nvidia.com/compute/cuda/12.4.0/local_installers/cuda_12.4.0_550.54.14_linux.run
+sudo sh cuda_12.4.0_550.54.14_linux.run
 #Accept terms
 #Install only the CUDA Toolkit (no driver, since PyTorch works already)
 export CUDA_HOME=/usr/local/cuda
@@ -19,16 +25,15 @@ pip install --upgrade pip setuptools wheel
 pip install flash-attn --no-build-isolation
 ```
 
-## Install Flash Attention
-```bash
-wget https://developer.download.nvidia.com/compute/cuda/12.4.0/local_installers/cuda_12.4.0_550.54.14_linux.run
-sudo sh cuda_12.4.0_550.54.14_linux.run
-
-```
-
 
 ## Env vars
 Copy .env.template and fill in the required values
+
+
+## Export requirements
+```bash
+poetry export -f requirements.txt --output requirements.txt --without-hashes
+```
 
 
 ## Upload-download data
