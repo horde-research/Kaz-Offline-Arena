@@ -141,11 +141,22 @@ def run_inference_huggingface(
         print(f"Sampled {sample_lines} lines from {len(df)} total lines.")
     mapping, prompts, _ = sample_questions(df, question_types, sample_qs, random_seed)
     print(f"Generated {len(prompts)} prompts for inference.")
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
+
+    if model_id == "armanibadboy/llama3.2-kazllm-3b-by-arman":
+        extra = {
+            "gguf_file": "unsloth.Q8_0.gguf",
+        }
+    else:
+        extra = {}
     model = AutoModelForCausalLM.from_pretrained(
-        model_id, torch_dtype=torch.bfloat16, attn_implementation="flash_attention_2"
+        model_id,
+        torch_dtype=torch.bfloat16,
+        attn_implementation="flash_attention_2",
+        trust_remote_code=True,
+        **extra,
     )
     model.generation_config.pad_token_id = tokenizer.pad_token_id
     model.eval()
@@ -180,15 +191,8 @@ def run_inference_huggingface(
             ]
             for prompt in batch_prompts
         ]
-        chat_template = (
-            tokenizer.chat_template
-            if hasattr(tokenizer, "chat_template")
-            and tokenizer.chat_template is not None
-            else {"messages": [{"role": "user", "content": "{user}"}]}
-        )
         formatted_inputs = tokenizer.apply_chat_template(
             chat_inputs,
-            chat_template=chat_template,
             tokenize=True,
             padding=True,
             truncation=True,

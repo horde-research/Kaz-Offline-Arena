@@ -24,6 +24,8 @@ export PATH=$CUDA_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 pip install --upgrade pip setuptools wheel
 pip install flash-attn --no-build-isolation
+
+python3 -m pip install --upgrade 'optree>=0.13.0'
 ```
 
 
