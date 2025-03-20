@@ -163,6 +163,14 @@ def run_inference_huggingface(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
 
+    if model_id in [
+        "google/gemma-2-2b-it",
+        "google/gemma-2-9b-it",
+    ]:
+        torch._dynamo.config.capture_dynamic_output_shape_ops = True
+        torch._dynamo.config.capture_scalar_outputs = True
+        torch.set_float32_matmul_precision("high")
+
     generation_config = {
         "do_sample": True,
         "max_new_tokens": 256,
@@ -191,12 +199,31 @@ def run_inference_huggingface(
             ]
             for prompt in batch_prompts
         ]
+
+        if model_id in [
+            "TilQazyna/llama-kaz-instruct-8B-1",
+        ]:
+            chat_template = """{% set loop_messages = messages %}{% for message in loop_messages %}{% set content = '<|start_header_id|>' + message['role'] + '<|end_header_id|>\n\n'+ message['content'] | trim + '<|eot_id|>' %}{% if loop.index0 == 0 %}{% set content = bos_token + content %}{% endif %}{{ content }}{% endfor %}{{ '<|start_header_id|>assistant<|end_header_id|>\n\n' }}"""
+        elif model_id in [
+            "IrbisAI/Irbis-7b-v0.1",
+        ]:
+            chat_template = """{% for message in messages %}
+            Сұрақ: {{ message['content'] | trim }}
+            Жауап:
+            {% endfor %}"""
+        elif model_id in [
+            "AmanMussa/llama2-kazakh-7b",
+        ]:
+            chat_template = """"""
+        else:
+            chat_template = None
         formatted_inputs = tokenizer.apply_chat_template(
             chat_inputs,
             tokenize=True,
             padding=True,
             truncation=True,
             return_tensors="pt",
+            chat_template=chat_template,
         )
         formatted_inputs = formatted_inputs.to(device)
         attention_masks = []
@@ -225,7 +252,15 @@ def run_inference_huggingface(
             input_length = formatted_inputs[j].shape[0]
             generated_tokens = out_ids[j][input_length:]
             out_text = tokenizer.decode(generated_tokens, skip_special_tokens=True)
-            out_text = out_text[len("assistant") :].strip()
+            if model_id not in [
+                "TilQazyna/llama-kaz-instruct-8B-1",
+                "IrbisAI/Irbis-7b-v0.1",
+                "google/gemma-2-9b-it",
+                "google/gemma-2-2b-it",
+            ]:
+                out_text = out_text[len("assistant") :].strip()
+            elif model_id in ["Qwen/Qwen2.5-7B-Instruct"]:
+                out_text = out_text[len("user\n\n") :].strip()
             rec = mapping[i * batch_size + j]
             rec["output"] = out_text
             rec["model"] = sanitize_model_name(model_id)
