@@ -31,7 +31,7 @@ def generate_postfix(
     indices_str = ",".join(sorted(str(x) for x in indices))
     base_str = f"{indices_str}_{model_id}_{sample_lines}_{sample_qs}_{dt.strftime('%Y%m%d-%H%M%S')}"
     hash_val = hashlib.md5(base_str.encode()).hexdigest()[:8]
-    return f"{hash_val}_{dt.strftime('%Y%m%d-%H%M%S')}"
+    return f"{hash_val}_{model_id}_{dt.strftime('%Y%m%d-%H%M%S')}"
 
 
 def sample_questions(

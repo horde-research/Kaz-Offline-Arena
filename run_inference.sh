@@ -30,20 +30,20 @@ for model in "${models[@]}"; do
     echo "Command: ${cmd}" | tee -a "${log_file}"
     output=$(eval ${cmd} 2>&1 | tee -a "${log_file}")
     exit_code=${PIPESTATUS[0]}
-    if [ ${exit_code} -eq 0 ] && ! echo "$output" | grep -q "ValueError:" ; then
+    if [ ${exit_code} -eq 0 ] && ! echo "$output" | grep -qi "out of memory" ; then
       echo "Command succeeded on attempt ${attempt}" | tee -a "${log_file}"
       break
     fi
-    if echo "$output" | grep -q "CUDA out of memory"; then
+    if echo "$output" | grep -qi "out of memory"; then
       if [ ${batch_size} -le 1 ]; then
         echo "Batch size reached minimum value. Exiting retry loop." | tee -a "${log_file}"
         break
       fi
       batch_size=$(( batch_size / 2 ))
-      echo "CUDA out of memory detected. Reducing batch_size to ${batch_size} and retrying." | tee -a "${log_file}"
+      echo "Out of memory detected. Reducing batch_size to ${batch_size} and retrying." | tee -a "${log_file}"
       attempt=$(( attempt + 1 ))
     else
-      echo "Command failed with error not related to CUDA memory." | tee -a "${log_file}"
+      echo "Command failed with error not related to memory." | tee -a "${log_file}"
       break
     fi
   done
