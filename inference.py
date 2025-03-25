@@ -10,6 +10,7 @@ from typing import Literal
 
 import openai
 import pandas as pd
+import peft
 import torch  # noqa: F401
 from dotenv import load_dotenv
 from huggingface_hub.hf_api import HfFolder
@@ -151,13 +152,24 @@ def run_inference_huggingface(
         }
     else:
         extra = {}
-    model = AutoModelForCausalLM.from_pretrained(
-        model_id,
-        torch_dtype=torch.bfloat16,
-        attn_implementation="flash_attention_2",
-        trust_remote_code=True,
-        **extra,
-    )
+    if model_id == "armanibadboy/llama3.1-kazllm-8b-by-arman-ver2":
+        model = AutoModelForCausalLM.from_pretrained(
+            "meta-llama/Llama-3.1-8B-Instruct",
+            trust_remote_code=True,
+            device_map="auto",
+            torch_dtype=torch.bfloat16,
+        )
+        model = peft.PeftModel.from_pretrained(
+            model, model_id, safe_serialization=True, torch_dtype=torch.bfloat16
+        )
+    else:
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            torch_dtype=torch.bfloat16,
+            attn_implementation="flash_attention_2",
+            trust_remote_code=True,
+            **extra,
+        )
     model.generation_config.pad_token_id = tokenizer.pad_token_id
     model.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

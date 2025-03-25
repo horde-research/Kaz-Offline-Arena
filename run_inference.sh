@@ -26,7 +26,7 @@ for model in "${models[@]}"; do
   attempt=1
   while true; do
     echo "Attempt ${attempt} with batch_size ${batch_size}" | tee -a "${log_file}"
-    cmd="poetry run python main.py inference --model_id=\"${model}\" --tasks_csv=\"Arena_QS_test_filtered_12k.csv\" --sample_lines=601 --question_types=\"WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS\" --sample_qs=1 --batch_size=${batch_size}"
+    cmd="python main.py inference --model_id=\"${model}\" --tasks_csv=\"Arena_QS_test_filtered_12k.csv\" --sample_lines=601 --question_types=\"WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS\" --sample_qs=1 --batch_size=${batch_size}"
     echo "Command: ${cmd}" | tee -a "${log_file}"
     output=$(eval ${cmd} 2>&1 | tee -a "${log_file}")
     exit_code=${PIPESTATUS[0]}
