@@ -146,7 +146,8 @@ def run_inference_huggingface(
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
 
-    if model_id == "armanibadboy/llama3.2-kazllm-3b-by-arman":
+    # if model_id == "armanibadboy/llama3.2-kazllm-3b-by-arman":
+    if False:  # Necessary on some machines, not on others, some dependency issue
         extra = {
             "gguf_file": "unsloth.Q8_0.gguf",
         }
