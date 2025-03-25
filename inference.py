@@ -181,6 +181,7 @@ def run_inference_huggingface(
     ]:
         torch._dynamo.config.capture_dynamic_output_shape_ops = True
         torch._dynamo.config.capture_scalar_outputs = True
+        torch._dynamo.config.suppress_errors = True
         torch.set_float32_matmul_precision("high")
 
     generation_config = {
