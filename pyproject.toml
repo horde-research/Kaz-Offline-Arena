@@ -28,3 +28,7 @@ bitsandbytes = "^0.45.3"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+
+[tool.isort]
+profile = "black"

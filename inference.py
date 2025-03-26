@@ -14,7 +14,7 @@ import peft
 import torch  # noqa: F401
 from dotenv import load_dotenv
 from huggingface_hub.hf_api import HfFolder
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 load_dotenv()
 if "HUGGINGFACE_TOKEN" in os.environ:
@@ -162,6 +162,21 @@ def run_inference_huggingface(
         )
         model = peft.PeftModel.from_pretrained(
             model, model_id, safe_serialization=True, torch_dtype=torch.bfloat16
+        )
+    elif model_id in ["issai/LLama-3.1-KazLLM-1.0-70B"]:
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_quant_type="nf4",
+        )
+
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            quantization_config=bnb_config,
+            device_map="cuda:0",  # or specify a custom mapping to offload some layers to CPU
+            trust_remote_code=True,
+            **extra,
         )
     else:
         model = AutoModelForCausalLM.from_pretrained(

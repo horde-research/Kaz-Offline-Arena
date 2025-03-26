@@ -14,7 +14,7 @@ poetry shell
 
 ## Install Flash Attention
 ```bash
-apt install gcc
+apt install gcc screen htop iotop nano
 wget https://developer.download.nvidia.com/compute/cuda/12.4.0/local_installers/cuda_12.4.0_550.54.14_linux.run
 sudo sh cuda_12.4.0_550.54.14_linux.run
 #Accept terms
@@ -27,6 +27,10 @@ pip install flash-attn --no-build-isolation
 python -m pip install --upgrade 'optree>=0.13.0'
 ```
 
+For 70B models:
+```bash
+pip install deepspeed
+```
 
 ## Env vars
 Copy .env.template and fill in the required values
