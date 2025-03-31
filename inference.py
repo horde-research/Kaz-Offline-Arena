@@ -174,7 +174,7 @@ def run_inference_huggingface(
         model = AutoModelForCausalLM.from_pretrained(
             model_id,
             quantization_config=bnb_config,
-            device_map="cuda:0",  # or specify a custom mapping to offload some layers to CPU
+            device_map="cuda:0",
             trust_remote_code=True,
             **extra,
         )
