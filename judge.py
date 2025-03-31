@@ -1,13 +1,15 @@
 import hashlib
 import json
+import logging
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from glob import glob
 
-import openai
+from openai import OpenAI
 from pydantic import BaseModel
-from tenacity import retry, stop_after_attempt, wait_fixed
+from tenacity import retry, stop_after_attempt, wait_exponential, wait_fixed
 
 
 def sanitize_model_name(model_id: str) -> str:
@@ -30,30 +32,51 @@ class JudgeOutput(BaseModel):
     score: int
 
 
-@retry(wait=wait_fixed(5), stop=stop_after_attempt(10))
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+def log_retry(retry_state):
+    logger.error(
+        f"Retrying call_judge due to: {retry_state.outcome.exception()}. "
+        f"Attempt {retry_state.attempt_number} of 10."
+    )
+
+
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+
+@retry(
+    wait=wait_fixed(30) + wait_exponential(multiplier=1, min=1, max=60),
+    stop=stop_after_attempt(10),
+    before_sleep=log_retry,
+)
 def call_judge(prompt: str, model: str = "gpt-4o") -> str:
-    response = openai.ChatCompletion.create(
+    completion = client.chat.completions.create(
         model=model,
         messages=[
             {
                 "role": "system",
                 "content": (
                     "You are an expert evaluator with deep knowledge of Kazakh language, culture, history and context of Kazakhstan. "
-                    "For the given context, question, and model response, "
-                    "evaluate the quality of the response. Provide an explanation and assign a score between 0 and 10. "
-                    "0 is completely irrelevant and unhelpful"
-                    "3 is partially relevant and helpful, but incorrect"
-                    "5 is somewhat relevant and helpful, but not fully correct"
-                    "7 is mostly relevant and helpful, but with some issues"
-                    "10 is completely relevant and helpful, with no issues"
-                    "Return a JSON object with keys 'explanation' and 'score'."
+                    "For the given context, question, and model response, evaluate the quality of the response. Provide an explanation "
+                    "and assign a score between 0 and 10. 0 is completely irrelevant and unhelpful, 3 is partially relevant and helpful but incorrect, "
+                    "5 is somewhat relevant and helpful but not fully correct, 7 is mostly relevant and helpful with some issues, "
+                    "10 is completely relevant and helpful with no issues. Return a JSON object with keys 'explanation' and 'score'."
                 ),
             },
             {"role": "user", "content": prompt},
         ],
         max_tokens=3000,
     )
-    return response.choices[0].message.content
+    return completion.choices[0].message.content
+
+
+def clean_json_response(response: str) -> str:
+    match = re.search(r"```(?:json)?\s*(.*?)\s*```", response, re.DOTALL)
+    if match:
+        return match.group(1)
+    return response.strip().replace("```json", "")
 
 
 def judge_single(record: dict) -> dict:
@@ -65,7 +88,7 @@ def judge_single(record: dict) -> dict:
     )
     try:
         resp = call_judge(prompt)
-        judge_obj = JudgeOutput.parse_raw(resp)
+        judge_obj = JudgeOutput.parse_raw(clean_json_response(resp))
         result = {
             "task_id": record["task_id"],
             "question_type": record["question_type"],
@@ -124,9 +147,11 @@ def run_judgements():
 
     judge_results = []
     indices = []
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=100) as executor:
         futures = {executor.submit(judge_single, rec): rec for rec in to_judge}
-        for future in as_completed(futures):
+        for i, future in enumerate(as_completed(futures)):
+            if i % 100 == 0:
+                print(f"Completed {i} tasks / {len(futures)}")
             res = future.result()
             judge_results.append(res)
             indices.append(f"{res['task_id']}-{res['question_type']}")

@@ -68,6 +68,7 @@ poetry run python main.py judge
 ```
 
 Compute ELO leaderboard:
+## It's actually Bradley-Terry model as described [here]()
 ```bash
 poetry run python main.py leaderboard
 ```

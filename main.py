@@ -22,18 +22,16 @@ def inference_cmd(
     else:
         question_types = list(question_types)
     qtypes = [qt.strip() for qt in question_types if qt.strip()]
-    results = run_inference(
+    run_inference(
         tasks_csv, model_id, sample_lines, qtypes, sample_qs, batch_size, model_type
     )
     print("Inference completed.")
-    return results
 
 
 def judge_cmd():
     print("Starting judge evaluation command...")
-    results = run_judgements()
+    run_judgements()
     print("Judge evaluation completed.")
-    return results
 
 
 def elo_cmd():
@@ -44,7 +42,6 @@ def elo_cmd():
         return {}
     path = elo.save_leaderboard(lb)
     print(f"ELO computation completed. Leaderboard saved to {path}")
-    return lb.to_dict(orient="records")
 
 
 if __name__ == "__main__":

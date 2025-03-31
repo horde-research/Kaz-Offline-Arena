@@ -23,6 +23,7 @@ numpy = "<2.0"
 accelerate = "^1.5.2"
 peft = "^0.15.0"
 bitsandbytes = "^0.45.3"
+choix = "^0.3.6"
 
 
 [build-system]
