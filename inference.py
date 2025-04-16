@@ -126,6 +126,22 @@ def run_inference(
     return outputs
 
 
+def prepare_data(
+    tasks_csv: str,
+    sample_lines: int,
+    question_types: list,
+    sample_qs: int,
+    random_seed: int,
+):
+    df = pd.read_csv(tasks_csv)
+    if sample_lines and sample_lines < len(df):
+        df = df.sample(n=sample_lines, random_state=random_seed)
+        print(f"Sampled {sample_lines} lines from {len(df)} total lines.")
+    mapping, prompts, _ = sample_questions(df, question_types, sample_qs, random_seed)
+    print(f"Generated {len(prompts)} prompts for inference.")
+    return mapping, prompts
+
+
 def run_inference_huggingface(
     tasks_csv: str,
     model_id: str,
@@ -135,13 +151,34 @@ def run_inference_huggingface(
     batch_size: int,
     random_seed: int = 42,
 ):
+    mapping, prompts = prepare_data(
+        tasks_csv, sample_lines, question_types, sample_qs, random_seed
+    )
+    SPECIAL_MODELS = [
+        "armanibadboy/llama3.2-kazllm-3b-by-arman",
+        "meta-llama/Llama-3.2-1B-Instruct",
+        "TilQazyna/llama-kaz-instruct-8B-1",
+        "google/gemma-2-2b-it",
+        "AmanMussa/llama2-kazakh-7b",
+        "IrbisAI/Irbis-7b-v0.1",
+        "armanibadboy/llama3.1-kazllm-8b-by-arman-ver2",
+        "meta-llama/Llama-3.2-3B-Instruct",
+        "Qwen/Qwen2.5-7B-Instruct",
+        "meta-llama/Llama-3.1-8B-Instruct",
+        "google/gemma-2-9b-it",
+        "issai/LLama-3.1-KazLLM-1.0-8B",
+        "issai/LLama-3.1-KazLLM-1.0-70B",
+    ]
+    if model_id not in SPECIAL_MODELS:
+        try:
+            from inference_custom import run_inference_custom
+        except ImportError as e:
+            raise ImportError(
+                "Custom inference module not found. Please provide inference_custom.py"
+            ) from e
+        return run_inference_custom(mapping, prompts, model_id, batch_size, random_seed)
+
     print("Running Huggingface inference...")
-    df = pd.read_csv(tasks_csv)
-    if sample_lines and sample_lines < len(df):
-        df = df.sample(n=sample_lines, random_state=random_seed)
-        print(f"Sampled {sample_lines} lines from {len(df)} total lines.")
-    mapping, prompts, _ = sample_questions(df, question_types, sample_qs, random_seed)
-    print(f"Generated {len(prompts)} prompts for inference.")
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
