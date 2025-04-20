@@ -36,22 +36,12 @@ pip install deepspeed
 Copy .env.template and fill in the required values
 
 
-## Export requirements
+## install requirements
 ```bash
-poetry export -f requirements.txt --output requirements.txt --without-hashes
+pip install -r requirements.txt
 ```
 
 
-## Upload-download data
-```bash
-curl --progress-bar -F "file=@Arena_QS_updated.zip" https://0x0.st
-```
-
-Then copy response URL and download the file and unzip it
-```bash
-wget <your_public_url>
-unzip <filename>.zip -d .
-````
 
 
 ## Commands
@@ -59,16 +49,21 @@ unzip <filename>.zip -d .
 Run inference:
 
 ```bash
-poetry run python main.py inference --model_id="meta-llama/Llama-3.2-3B-Instruct" --tasks_csv="Arena_QS_updated_filtered.csv" --sample_lines=25 --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --sample_qs=2 --batch_size=50
+poetry run python main.py inference --model_id="meta-llama/Llama-3.2-3B-Instruct" --tasks_csv="Arena_QS_updated_filtered.csv" --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --batch_size=50
+```
+or for multi-gpu
+
+```bash
+accelerate launch main.py inference --model_id="meta-llama/Llama-3.2-3B-Instruct" --tasks_csv="Arena_QS_updated_filtered.csv" --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --batch_size=50
 ```
 
 Run judge evaluations:
 ```bash
-poetry run python main.py judge
+python main.py judge
 ```
 
 Compute ELO leaderboard:
 ## It's actually Bradley-Terry model as described [here]()
 ```bash
-poetry run python main.py leaderboard
+python main.py elo
 ```
