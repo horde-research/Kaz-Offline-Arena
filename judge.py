@@ -143,7 +143,9 @@ def run_judgements():
     for jf in existing_judge_files:
         print(f"Loading judged results from {jf}...")
         with open(jf) as f:
-            for rec in json.load(f):
+            data = json.load(f)
+            # extract the list of judge‐records
+            for rec in data.get("judges", []):
                 if rec.get("generation_id") and rec.get("success"):
                     existing_judged_ids.add(rec["generation_id"])
     print(f"Found {len(existing_judged_ids)} already judged generation_ids.")
@@ -167,8 +169,9 @@ def run_judgements():
     all_judge_results = []
     for jf in existing_judge_files:
         with open(jf) as f:
-            all_judge_results.extend(json.load(f))
-    all_judge_results.extend(judge_results)
+            data = json.load(f)
+            # only extend with the actual judge records
+            all_judge_results.extend(data.get("judges", []))
 
     # --- 5.1 Remove context and output from each record ---
     for rec in all_judge_results:
