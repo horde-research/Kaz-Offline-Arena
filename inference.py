@@ -93,7 +93,7 @@ def save_results(final_results: dict, folder="inference",
                                      encoding="utf-8") as tmp:
         json.dump(final_results, tmp, indent=2, ensure_ascii=False)
         tmp_path = tmp.name
-    # атомарный rename
+    # атомарный rename???
     final_path = os.path.join(out_dir, file_name)
     os.replace(tmp_path, final_path)
     print(f"Saved results to {final_path}")
@@ -122,8 +122,8 @@ def run_inference(
     # Choose the corresponding inference function based on backend.
     if model_backend == "hugginface":
         outputs = run_inference_huggingface(model_id, question_types, batch_size)
-    elif model_backend == "openai":
-        outputs = run_inference_openai(model_id, question_types, batch_size)
+    # elif model_backend == "openai":
+    #     outputs = run_inference_openai(model_id, question_types, batch_size)
     else:
         raise ValueError(f"Unsupported model_backend: {model_backend}")
 
@@ -161,9 +161,36 @@ def run_inference_huggingface(
     # Convert to pandas DataFrame
     df = dataset.to_pandas()
     #df = df.iloc[:10]  # Limit to 10 rows for testing
-    #df = pd.read_csv(tasks_csv)
-    mapping, prompts, _ = process_all_questions(df, question_types)
-    print(f"Generated {len(prompts)} prompts for inference.")
+    # mapping, prompts, _ = process_all_questions(df, question_types)
+    # print(f"Generated {len(prompts)} prompts for inference.")
+# ——— INSERT ROUND-ROBIN QUESTION SELECTION HERE ———
+    question_types = ['WHY_QS', 'WHAT_QS', 'HOW_QS', 'DESCRIBE_QS', 'ANALYZE_QS']
+    n = len(question_types)
+    # assign each row one question type in turn
+    df['selected_qt'] = [question_types[i % n] for i in range(len(df))]
+    df['selected_question'] = df.apply(lambda r: r[r['selected_qt']], axis=1)
+
+    mapping, prompts, unique_ids = [], [], []
+    for idx, row in df.iterrows():
+        qt = row['selected_qt']
+        qtext = row['selected_question']
+        if pd.notna(qtext):
+            prompt = (
+                f"Context: {row['text']}\n"
+                f"Question ({qt}): {qtext}\n\n"
+                "Answer the question in Kazakh language using the information provided in the context.\n"
+                "Be concise and clear—only answer the question asked, but answer it well."
+            )
+            mapping.append({
+                "task_id": idx,
+                "question_type": qt,
+                "context": row['text'],
+                "prompt": prompt
+            })
+            prompts.append(prompt)
+            unique_ids.append(f"{idx}-{qt}")
+    print(f"Generated {len(prompts)} prompts for inference (one per row).")
+
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
@@ -280,45 +307,45 @@ def run_inference_huggingface(
     print("Huggingface inference completed.")
     return outputs
 
-def run_inference_openai(
-    model_id: str,
-    question_types: list,
-    batch_size: int,
-):
-    # Load the dataset from Hugging Face with the "arena" split
-    dataset = load_dataset("kz-transformers/arena-offline-qa", split="arena")
+# def run_inference_openai(
+#     model_id: str,
+#     question_types: list,
+#     batch_size: int,
+# ):
+#     # Load the dataset from Hugging Face with the "arena" split
+#     dataset = load_dataset("kz-transformers/arena-offline-qa", split="arena")
 
-    # Convert to pandas DataFrame
-    df = dataset.to_pandas()
-    #df = pd.read_csv(tasks_csv)
-    mapping, prompts, _ = process_all_questions(df, question_types)
-    print(f"Generated {len(prompts)} prompts for inference.")
+#     # Convert to pandas DataFrame
+#     df = dataset.to_pandas()
+#     #df = pd.read_csv(tasks_csv)
+#     mapping, prompts, _ = process_all_questions(df, question_types)
+#     print(f"Generated {len(prompts)} prompts for inference.")
 
-    def call_openai(prompt_text: str) -> str:
-        messages = [{"role": "user", "content": prompt_text}]
-        response = openai.ChatCompletion.create(
-            model=model_id,
-            messages=messages,
-            max_tokens=512,
-            temperature=0.5,
-            top_p=0.75,
-        )
-        return response.choices[0].message.content.strip()
+#     def call_openai(prompt_text: str) -> str:
+#         messages = [{"role": "user", "content": prompt_text}]
+#         response = openai.ChatCompletion.create(
+#             model=model_id,
+#             messages=messages,
+#             max_tokens=512,
+#             temperature=0.5,
+#             top_p=0.75,
+#         )
+#         return response.choices[0].message.content.strip()
 
-    outputs = []
-    with ThreadPoolExecutor(max_workers=batch_size) as executor:
-        future_to_idx = {executor.submit(call_openai, p): idx for idx, p in enumerate(prompts)}
-        for future in as_completed(future_to_idx):
-            idx = future_to_idx[future]
-            try:
-                out = future.result()
-            except Exception as e:
-                out = f"Error: {e}"
-            rec = mapping[idx]
-            rec["output"] = out
-            rec["tokens_count"] = len(out.split())
-            rec["model"] = sanitize_model_name(model_id)
-            rec["unique_id"] = str(uuid.uuid4())
-            outputs.append(rec)
-    print("OpenAI chat inference completed.")
-    return outputs
+#     outputs = []
+#     with ThreadPoolExecutor(max_workers=batch_size) as executor:
+#         future_to_idx = {executor.submit(call_openai, p): idx for idx, p in enumerate(prompts)}
+#         for future in as_completed(future_to_idx):
+#             idx = future_to_idx[future]
+#             try:
+#                 out = future.result()
+#             except Exception as e:
+#                 out = f"Error: {e}"
+#             rec = mapping[idx]
+#             rec["output"] = out
+#             rec["tokens_count"] = len(out.split())
+#             rec["model"] = sanitize_model_name(model_id)
+#             rec["unique_id"] = str(uuid.uuid4())
+#             outputs.append(rec)
+#     print("OpenAI chat inference completed.")
+#     return outputs

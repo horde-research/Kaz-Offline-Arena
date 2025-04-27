@@ -119,7 +119,6 @@ def run_judgements():
         print("No inference result files found.")
         return {}
 
-    # --- 1. Load summary from the first inference file ---
     with open(inf_files[0]) as f:
         first_data = json.load(f)
     summary = first_data.get("summary", {})
@@ -127,7 +126,6 @@ def run_judgements():
 
     print(f"Found {len(inf_files)} inference file(s).")
 
-    # --- 2. Load all inference records ---
     inference_results = []
     for file in inf_files:
         print(f"Loading inference results from {file}...")
@@ -137,26 +135,25 @@ def run_judgements():
             inference_results.extend(records)
     print(f"Total inference records loaded: {len(inference_results)}")
 
-    # --- 3. Skip already‑judged ones ---
     existing_judge_files = glob(os.path.join("output", "judge", "judge_results_*.json"))
     existing_judged_ids = set()
     for jf in existing_judge_files:
         print(f"Loading judged results from {jf}...")
         with open(jf) as f:
             data = json.load(f)
-            # extract the list of judge‐records
+
             for rec in data.get("judges", []):
                 if rec.get("generation_id") and rec.get("success"):
                     existing_judged_ids.add(rec["generation_id"])
     print(f"Found {len(existing_judged_ids)} already judged generation_ids.")
 
     to_judge = [
-        rec for rec in inference_results
+        rec
+        for rec in inference_results
         if rec.get("generation_id") not in existing_judged_ids
     ]
     print(f"{len(to_judge)} inference records need to be judged.")
 
-    # --- 4. Run judge in parallel ---
     judge_results = []
     with ThreadPoolExecutor(max_workers=100) as executor:
         futures = {executor.submit(judge_single, rec): rec for rec in to_judge}
@@ -165,20 +162,19 @@ def run_judgements():
                 print(f"Completed {i} tasks / {len(futures)}")
             judge_results.append(future.result())
 
-    # --- 5. Combine with existing judged entries ---
     all_judge_results = []
     for jf in existing_judge_files:
         with open(jf) as f:
             data = json.load(f)
-            # only extend with the actual judge records
+
             all_judge_results.extend(data.get("judges", []))
 
-    # --- 5.1 Remove context and output from each record ---
     for rec in all_judge_results:
         rec.pop("context", None)
         rec.pop("output", None)
         
-    # --- 6. Build final output dict ---
+    all_judge_results.extend(judge_results)
+
     output_dict = {
         "results": {
             "model": model_name,
@@ -189,7 +185,6 @@ def run_judgements():
         "judges": all_judge_results,
     }
 
-    # --- 7. Write to file with a timestamped postfix ---
     dt = datetime.now()
     indices = [f"{r['task_id']}-{r['question_type']}" for r in all_judge_results]
     postfix = generate_postfix(

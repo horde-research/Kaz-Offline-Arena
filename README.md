@@ -49,12 +49,16 @@ pip install -r requirements.txt
 Run inference:
 
 ```bash
-poetry run python main.py inference --model_id="meta-llama/Llama-3.2-3B-Instruct" --tasks_csv="Arena_QS_updated_filtered.csv" --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --batch_size=50
+poetry run python main.py inference --model_id="meta-llama/Llama-3.2-3B-Instruct" --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --batch_size=10
 ```
 or for multi-gpu
 
 ```bash
-accelerate launch main.py inference --model_id="meta-llama/Llama-3.2-3B-Instruct" --tasks_csv="Arena_QS_updated_filtered.csv" --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --batch_size=50
+accelerate launch main.py inference --model_id="meta-llama/Llama-3.2-3B-Instruct" --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --batch_size=10
+```
+with nohup
+```bash
+nohup accelerate launch main.py inference --model_id="google/gemma-2-9b-it" --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --batch_size=1 > output.log 2>&1 &
 ```
 
 Run judge evaluations:
