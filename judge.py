@@ -169,11 +169,11 @@ def run_judgements():
 
             all_judge_results.extend(data.get("judges", []))
 
+    all_judge_results.extend(judge_results)
+
     for rec in all_judge_results:
         rec.pop("context", None)
-        rec.pop("output", None)
-        
-    all_judge_results.extend(judge_results)
+        rec.pop("output", None)    
 
     output_dict = {
         "results": {
