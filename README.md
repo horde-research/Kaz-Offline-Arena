@@ -7,7 +7,7 @@ This project runs a single Huggingface decoder-only model over tasks defined in 
 pip install -r requirements.txt
 ```
 
-## Install Flash Attention(optioanlly)
+## Install Flash Attention(optionally)
 ```bash
 apt install gcc screen htop iotop nano
 wget https://developer.download.nvidia.com/compute/cuda/12.4.0/local_installers/cuda_12.4.0_550.54.14_linux.run
