@@ -117,14 +117,22 @@ def run_judgements():
     inf_files = glob(os.path.join("output", "inference", "inference_results_*.json"))
     if not inf_files:
         print("No inference result files found.")
-        return []
+        return {}
+
+    with open(inf_files[0]) as f:
+        first_data = json.load(f)
+    summary = first_data.get("summary", {})
+    model_name = first_data.get("results", [{}])[0].get("model", "unknown")
+
     print(f"Found {len(inf_files)} inference file(s).")
+
     inference_results = []
     for file in inf_files:
         print(f"Loading inference results from {file}...")
         with open(file) as f:
             data = json.load(f)
-            inference_results.extend(data)
+            records = data.get("results", [])
+            inference_results.extend(records)
     print(f"Total inference records loaded: {len(inference_results)}")
 
     existing_judge_files = glob(os.path.join("output", "judge", "judge_results_*.json"))
@@ -132,9 +140,10 @@ def run_judgements():
     for jf in existing_judge_files:
         print(f"Loading judged results from {jf}...")
         with open(jf) as f:
-            jdata = json.load(f)
-            for rec in jdata:
-                if "generation_id" in rec and rec["success"]:
+            data = json.load(f)
+
+            for rec in data.get("judges", []):
+                if rec.get("generation_id") and rec.get("success"):
                     existing_judged_ids.add(rec["generation_id"])
     print(f"Found {len(existing_judged_ids)} already judged generation_ids.")
 
@@ -146,27 +155,38 @@ def run_judgements():
     print(f"{len(to_judge)} inference records need to be judged.")
 
     judge_results = []
-    indices = []
     with ThreadPoolExecutor(max_workers=100) as executor:
         futures = {executor.submit(judge_single, rec): rec for rec in to_judge}
-        for i, future in enumerate(as_completed(futures)):
+        for i, future in enumerate(as_completed(futures), 1):
             if i % 100 == 0:
                 print(f"Completed {i} tasks / {len(futures)}")
-            res = future.result()
-            judge_results.append(res)
-            indices.append(f"{res['task_id']}-{res['question_type']}")
+            judge_results.append(future.result())
 
     all_judge_results = []
     for jf in existing_judge_files:
         with open(jf) as f:
             data = json.load(f)
-            all_judge_results.extend(data)
+
+            all_judge_results.extend(data.get("judges", []))
+
     all_judge_results.extend(judge_results)
 
+    for rec in all_judge_results:
+        rec.pop("context", None)
+        rec.pop("output", None)    
+
+    output_dict = {
+        "results": {
+            "model": model_name,
+            "avg_tokens": summary.get("avg_tokens"),
+            "avg_tokens_std": summary.get("avg_tokens_std"),
+            "model_type": summary.get("model_type", "").lower(),
+        },
+        "judges": all_judge_results,
+    }
+
     dt = datetime.now()
-    model_name = (
-        inference_results[0].get("model", "unknown") if inference_results else "unknown"
-    )
+    indices = [f"{r['task_id']}-{r['question_type']}" for r in all_judge_results]
     postfix = generate_postfix(
         indices, sanitize_model_name(model_name), len(inference_results), dt
     )
@@ -174,6 +194,7 @@ def run_judgements():
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, f"judge_results_{postfix}.json")
     with open(out_path, "w") as f:
-        json.dump(all_judge_results, f, indent=2)
+        json.dump(output_dict, f, indent=2, ensure_ascii=False)
+
     print(f"Judge evaluations completed. Results saved to {out_path}")
-    return all_judge_results
+    return output_dict

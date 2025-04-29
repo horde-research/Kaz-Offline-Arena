@@ -9,12 +9,9 @@ from judge import run_judgements
 
 def inference_cmd(
     model_id: str,
-    tasks_csv: str,
-    sample_lines: int,
     question_types: str = "WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS",
-    sample_qs: int = 1,
     batch_size: int = 4,
-    model_type: Literal["hugginface", "openai"] = "hugginface",
+    model_backend: Literal["hugginface", "openai"] = "hugginface",
 ):
     print("Starting inference command...")
     if isinstance(question_types, str):
@@ -23,7 +20,7 @@ def inference_cmd(
         question_types = list(question_types)
     qtypes = [qt.strip() for qt in question_types if qt.strip()]
     run_inference(
-        tasks_csv, model_id, sample_lines, qtypes, sample_qs, batch_size, model_type
+         model_id, qtypes, batch_size, model_backend
     )
     print("Inference completed.")
 

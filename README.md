@@ -1,6 +1,6 @@
 # Offline Arena
 
-This project runs a single Huggingface decoder-only model over tasks defined in a CSV. For each row, it randomly samples M question types (e.g. WHY_QS, WHAT_QS, etc.) and performs inference (one output per chosen question). Then, each row-question pair is sent individually to an LLM as judge. The judge returns a chain-of-thought explanation and a score (0–100) in JSON format (validated with Pydantic). Finally, pairwise ELO ratings are computed per row and aggregated into an Excel leaderboard.
+This project runs a single Huggingface decoder-only model over tasks defined in a CSV. For each row, it randomly samples M question types (e.g. WHY_QS, WHAT_QS, etc.) and performs inference (one output per chosen question). Then, each row-question pair is sent individually to an LLM as judge. The judge returns a chain-of-thought explanation and a score (0–100) in JSON format (validated with Pydantic). Finally, pairwise ELO ratings are computed per row and aggregated into an leaderboard.
 
 
 ## How to run inference with your model
@@ -8,13 +8,9 @@ The easiest way to run inference with your LLM is to re-implement `inference_cus
 The file contains a simple prototype of the inference, but you can modify it to suit your needs.
 If model_id provided is unknown, inference_custom implementation will be used instead of the default one.
 
-## Setup
-
-Install dependencies with Poetry:
-
+## install requirements
 ```bash
-poetry install
-poetry shell
+pip install -r requirements.txt
 ```
 
 ## Install Flash Attention
@@ -33,42 +29,32 @@ python -m pip install --upgrade 'optree>=0.13.0'
 ```
 
 ## Env vars
-Copy .env.template and fill in the required values
-
-
-## Export requirements
-```bash
-poetry export -f requirements.txt --output requirements.txt --without-hashes
-```
-
-
-## Upload-download data
-```bash
-curl --progress-bar -F "file=@Arena_QS_updated.zip" https://0x0.st
-```
-
-Then copy response URL and download the file and unzip it
-```bash
-wget <your_public_url>
-unzip <filename>.zip -d .
-````
-
+Copy .env.template and fill in the required values in .env file
 
 ## Commands
 
 Run inference:
 
 ```bash
-poetry run python main.py inference --model_id="meta-llama/Llama-3.2-3B-Instruct" --tasks_csv="Arena_QS_updated_filtered.csv" --sample_lines=25 --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --sample_qs=2 --batch_size=50
+python main.py inference --model_id="meta-llama/Llama-3.2-3B-Instruct" --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --batch_size=10
+```
+
+with nohup
+```bash
+nohup python main.py inference --model_id="issai/LLama-3.1-KazLLM-1.0-70B" --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --batch_size=1 > output.log 2>&1 &
 ```
 
 Run judge evaluations:
 ```bash
-poetry run python main.py judge
+python main.py judge
 ```
 
-Compute ELO leaderboard:
-## It's actually Bradley-Terry model
+After Judge evaluations, you will get `filename.json` in the `output/judge/` directory. You can use this file to submit your model in the [Kaz Offline Arena](https://huggingface.co/spaces/kz-transformers/kaz-offline-arena).
+
+## Note: You don't need to run the code(elo.py) below. We calculate elo in spaces leaderboard when you submit the model
+
+Compute ELO leaderboard(optionally):
+## It's actually Bradley-Terry model as described [here]()
 ```bash
-poetry run python main.py leaderboard
+python main.py elo
 ```
