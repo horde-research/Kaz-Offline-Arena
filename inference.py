@@ -339,7 +339,9 @@ def run_inference_huggingface(
             outputs.append(rec)
 
         return outputs
-    if model_id in ["meta-llama/Llama-3.3-70B-Instruct","meta-llama/Meta-Llama-3.1-8B-Instruct"]:
+    if model_id in ["meta-llama/Llama-3.3-70B-Instruct",
+                    "meta-llama/Meta-Llama-3.1-8B-Instruct",
+                     "mistralai/Mistral-Small-24B-Instruct-2501"]:
         tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
 
         pipe = transformers.pipeline(
