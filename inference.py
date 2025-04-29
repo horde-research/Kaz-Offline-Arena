@@ -247,7 +247,7 @@ def run_inference_huggingface(
 
         print("Sherkala inference completed.")
         return outputs
-    if model_id in ["google/gemma-3-4b-it","google/gemma-3-27b-it"]:
+    if model_id in ["google/gemma-3-4b-it","google/gemma-3-27b-it", "google/gemma-3-12b-it"]:
         torch._dynamo.config.capture_dynamic_output_shape_ops = True
         torch._dynamo.config.capture_scalar_outputs = True
         torch._dynamo.config.suppress_errors = True
