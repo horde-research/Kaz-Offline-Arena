@@ -166,7 +166,7 @@ def run_inference_huggingface(
 
     # Convert to pandas DataFrame
     df = dataset.to_pandas()
-    df = df.iloc[:2]  # Limit to 10 rows for testing
+    #df = df.iloc[:2]  # Limit to 10 rows for testing
     # mapping, prompts, _ = process_all_questions(df, question_types)
     # print(f"Generated {len(prompts)} prompts for inference.")
 # ——— INSERT ROUND-ROBIN QUESTION SELECTION HERE ———
