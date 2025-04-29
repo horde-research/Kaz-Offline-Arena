@@ -194,7 +194,7 @@ def run_judgements():
     )
     out_dir = os.path.join("output", "judge")
     os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, f"judge_results_{postfix}.json")
+    out_path = os.path.join(out_dir, f"judge_results_{postfix}_{sanitize_model_name_postfix(model_name)}.json")
     with open(out_path, "w") as f:
         json.dump(output_dict, f, indent=2, ensure_ascii=False)
 

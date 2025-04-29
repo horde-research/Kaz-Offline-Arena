@@ -17,7 +17,7 @@ import torch  # noqa: F401
 from dotenv import load_dotenv
 from huggingface_hub.hf_api import HfFolder
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-from transformers import AutoProcessor, Gemma3ForConditionalGeneration
+from transformers import AutoProcessor, Gemma3ForConditionalGeneration, Llama4ForConditionalGeneration
 from tqdm import tqdm
 import torch._dynamo
 torch._dynamo.config.cache_size_limit = 1024  # or more
@@ -383,7 +383,58 @@ def run_inference_huggingface(
             outputs.append(rec)
 
         return outputs
-    
+    # ──────────────────────────────────────────────────────────────
+    if model_id in ["meta-llama/Llama-4-Scout-17B-16E-Instruct"]:
+        # ⚠️  Llama-4 needs the processor to build the chat template even for text-only I/O.
+        processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
+        model = Llama4ForConditionalGeneration.from_pretrained(
+            model_id,
+            attn_implementation="flex_attention",   # required by the model card
+            device_map="auto",
+            torch_dtype=torch.bfloat16,
+            trust_remote_code=True,
+        ).eval()
+
+        outputs = []
+        for rec in tqdm(mapping, desc="Llama-4 inference"):
+            # text-only prompt (no images)
+            messages = [
+                {"role": "user", "content": [
+                    {"type": "text", "text": rec["prompt"]}
+                ]}
+            ]
+
+            inputs = processor.apply_chat_template(
+                messages,
+                add_generation_prompt=True,
+                tokenize=True,
+                return_dict=True,
+                return_tensors="pt",
+            ).to(model.device)
+
+            input_len = inputs["input_ids"].shape[-1]
+
+            with torch.no_grad():
+                gen_ids = model.generate(
+                    **inputs,
+                    max_new_tokens=512,
+                    do_sample=False,
+                )[0]
+
+            gen_ids = gen_ids[input_len:]                    # strip the prompt
+            answer   = processor.decode(gen_ids, skip_special_tokens=True)
+
+            rec.update({
+                "output":        answer,
+                "tokens_count":  gen_ids.size(0),
+                "model":         sanitize_model_name(model_id),
+                "generation_id": str(uuid.uuid4()),
+            })
+            outputs.append(rec)
+
+        return outputs
+    # ──────────────────────────────────────────────────────────────
+   
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
