@@ -1,6 +1,12 @@
 # Offline Arena
 
-This project runs a single Huggingface decoder-only model over tasks defined in a CSV. For each row, it  samples M question types (e.g. WHY_QS, WHAT_QS, etc.) and performs inference (one output per chosen question). Then, each row-question pair is sent individually to an LLM as judge. The judge returns a chain-of-thought explanation and a score (0–100) in JSON format (validated with Pydantic). 
+This project runs a single Huggingface decoder-only model over tasks defined in a CSV. For each row, it randomly samples M question types (e.g. WHY_QS, WHAT_QS, etc.) and performs inference (one output per chosen question). Then, each row-question pair is sent individually to an LLM as judge. The judge returns a chain-of-thought explanation and a score (0–100) in JSON format (validated with Pydantic). Finally, pairwise ELO ratings are computed per row and aggregated into an leaderboard.
+
+
+## How to run inference with your model
+The easiest way to run inference with your LLM is to re-implement `inference_custom.py` file.
+The file contains a simple prototype of the inference, but you can modify it to suit your needs.
+If model_id provided is unknown, inference_custom implementation will be used instead of the default one.
 
 ## install requirements
 ```bash
