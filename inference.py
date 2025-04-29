@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from datasets import load_dataset
 from typing import Literal
+import logging
 
 import openai
 import pandas as pd
@@ -15,10 +16,22 @@ import torch  # noqa: F401
 from dotenv import load_dotenv
 from huggingface_hub.hf_api import HfFolder
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import AutoProcessor, Gemma3ForConditionalGeneration
+from tqdm import tqdm
+import torch._dynamo
+torch._dynamo.config.cache_size_limit = 1024  # or more
+
 
 load_dotenv()
 if "HUGGINGFACE_TOKEN" in os.environ:
     HfFolder.save_token(os.environ["HUGGINGFACE_TOKEN"])
+
+# torch._dynamo.disable()
+# torch._dynamo.config.cache_size_limit = 256
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def sanitize_model_name(model_id: str) -> str:
     return model_id.replace("/", "-")
@@ -73,15 +86,6 @@ def process_all_questions(df: pd.DataFrame, question_types: list):
                 unique_ids.append(f"{idx}-{qt}")
     return mapping, prompts, unique_ids
 
-# def save_results(final_results: dict, folder: str = "inference", file_name: str = "inference_results.json"):
-#     out_dir = os.path.join("output", folder)
-#     os.makedirs(out_dir, exist_ok=True)
-#     out_path = os.path.join(out_dir, file_name)
-#     with open(out_path, "w") as f:
-#         json.dump(final_results, f, indent=2, ensure_ascii=False)
-#     print(f"Saved results to {out_path}")
-#     return out_path
-
 def save_results(final_results: dict, folder="inference",
                  file_name="inference_results.json"):
     out_dir = os.path.join("output", folder)
@@ -119,7 +123,6 @@ def run_inference(
     model_backend: Literal["hugginface", "openai"] = "hugginface",
     user_model_type: str = "SFT",  # user provided model type (default "SFT")
 ):
-    # Choose the corresponding inference function based on backend.
     if model_backend == "hugginface":
         outputs = run_inference_huggingface(model_id, question_types, batch_size)
     # elif model_backend == "openai":
@@ -191,6 +194,149 @@ def run_inference_huggingface(
             unique_ids.append(f"{idx}-{qt}")
     print(f"Generated {len(prompts)} prompts for inference (one per row).")
 
+    if model_id == "inceptionai/Llama-3.1-Sherkala-8B-Chat":
+        model_path = model_id
+        tokenizer = AutoTokenizer.from_pretrained(model_path)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            torch_dtype=torch.bfloat16,
+            device_map="auto"
+        )
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # Set chat template for Sherkala
+        tokenizer.chat_template = (
+            "{% set loop_messages = messages %}"
+            "{% for message in loop_messages %}"
+            "{% set content = '<|start_header_id|>' + message['role'] + '<|end_header_id|>\n\n' + message['content'] | trim + '<|eot_id|>' %}"              
+            "{% if loop.index0 == 0 %}{% set content = bos_token + content %}{% endif %}"
+            "{{ content }}"
+            "{% endfor %}{% if add_generation_prompt %}{{ '<|start_header_id|>assistant<|end_header_id|>\n\n' }}{% endif %}"
+        )
+        # Helper for generation
+        def get_response(text):
+            conversation = [{"role": "user", "content": text}]
+            inputs = tokenizer.apply_chat_template(
+                conversation=conversation,
+                tokenize=True,
+                add_generation_prompt=True,
+                return_tensors="pt"
+            ).to(device)
+            gen_tokens = model.generate(
+                inputs,
+                max_new_tokens=500,
+                stop_strings=["<|eot_id|>"],
+                tokenizer=tokenizer
+            )
+            # Decode excluding prompt tokens
+            gen_text = tokenizer.decode(gen_tokens[0][len(inputs[0]):-1])
+            return gen_text, gen_tokens, inputs
+
+        # Run inference using get_response
+        outputs = []
+        for rec, prompt in zip(mapping, prompts):
+            out_text, gen_tokens, inputs = get_response(prompt)
+            token_count = gen_tokens[0].size(0) - inputs[0].size(0)
+            rec.update({
+                "output": out_text,
+                "tokens_count": token_count,
+                "model": sanitize_model_name(model_id),
+                "generation_id": str(uuid.uuid4())
+            })
+            outputs.append(rec)
+
+        print("Sherkala inference completed.")
+        return outputs
+    if model_id in ["google/gemma-3-4b-it","google/gemma-3-27b-it"]:
+        torch._dynamo.config.capture_dynamic_output_shape_ops = True
+        torch._dynamo.config.capture_scalar_outputs = True
+        torch._dynamo.config.suppress_errors = True
+        torch.set_float32_matmul_precision("high")
+        torch._dynamo.config.cache_size_limit = 1024  # o
+
+        processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
+        model = Gemma3ForConditionalGeneration.from_pretrained(
+            model_id, device_map="auto", trust_remote_code=True, torch_dtype=torch.bfloat16
+        ).eval()
+    
+        outputs = []
+        for rec in tqdm(mapping):
+            messages = [
+                {"role": "user",    "content": [
+                    {"type": "text",  "text": rec["prompt"]}
+                ]},
+            ]
+    
+            inputs = processor.apply_chat_template(
+                messages,
+                add_generation_prompt=True,
+                tokenize=True,
+                return_dict=True,
+                return_tensors= "pt"
+            ).to(model.device, dtype=torch.bfloat16)
+            input_len = inputs["input_ids"].shape[-1]
+    
+            with torch.no_grad():
+                gen = model.generate(**inputs, max_new_tokens=500, do_sample=False)[0]
+            gen = gen[input_len:]
+    
+            text = processor.decode(gen, skip_special_tokens=True)
+            rec.update({
+                "output": text,
+                "tokens_count": gen.size(0),
+                "model": sanitize_model_name(model_id),
+                "generation_id": str(uuid.uuid4()),
+            })
+            outputs.append(rec)
+    
+        return outputs
+
+    if model_id == "Qwen/Qwen2.5-32B-Instruct":
+
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_id,
+            trust_remote_code=True
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            torch_dtype=torch.bfloat16,
+            device_map="auto",
+            trust_remote_code=True
+        ).eval()
+
+        outputs = []
+        for rec in tqdm(mapping, desc="Qwen-32B inference"):
+
+            messages = [
+                {"role": "user", "content": rec["prompt"]},
+            ]
+
+            text = tokenizer.apply_chat_template(
+                messages,
+                tokenize=False,
+                add_generation_prompt=True
+            )
+
+            model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
+
+            gen_ids = model.generate(**model_inputs, max_new_tokens=512)
+
+            stripped = [
+                out_ids[input_ids.shape[-1]:]
+                for input_ids, out_ids in zip(model_inputs.input_ids, gen_ids)
+            ]
+
+            response = tokenizer.batch_decode(stripped, skip_special_tokens=True)[0]
+
+            rec.update({
+                "output":       response,
+                "tokens_count": stripped[0].size(0),
+                "model":        sanitize_model_name(model_id),
+                "generation_id": str(uuid.uuid4()),
+            })
+            outputs.append(rec)
+
+        return outputs
+
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
@@ -220,7 +366,7 @@ def run_inference_huggingface(
 
     generation_config = {
         "do_sample": True,
-        "max_new_tokens": 256,
+        "max_new_tokens": 512,
         "num_beams": 1,
         "repetition_penalty": 1.0,
         "remove_invalid_values": True,
@@ -235,9 +381,9 @@ def run_inference_huggingface(
     outputs = []
     num_batches = math.ceil(len(prompts) / batch_size)
     print(f"Processing {num_batches} batches with batch size {batch_size}.")
-    for i in range(num_batches):
+    for i in tqdm(range(num_batches)):
         batch_prompts = prompts[i * batch_size: (i + 1) * batch_size]
-        print(f"Processing batch {i+1}/{num_batches} with {len(batch_prompts)} prompts.")
+        logger.info(f"Processing batch {i+1}/{num_batches} with {len(batch_prompts)} prompts.")
         chat_inputs = [
             [{"role": "user", "content": prompt}] for prompt in batch_prompts
         ]
@@ -304,7 +450,7 @@ def run_inference_huggingface(
             rec["model"] = sanitize_model_name(model_id)
             rec["generation_id"] = str(uuid.uuid4())
             outputs.append(rec)
-    print("Huggingface inference completed.")
+    logger.info("Inference completed.")
     return outputs
 
 # def run_inference_openai(
