@@ -15,6 +15,8 @@ from tenacity import retry, stop_after_attempt, wait_exponential, wait_fixed
 def sanitize_model_name(model_id: str) -> str:
     return model_id#.replace("/", "-")
 
+def sanitize_model_name_postfix(model_id: str) -> str:
+    return model_id.replace("/", "-")
 
 def generate_postfix(
     indices: list, model_name: str, sample_count: int, dt: datetime
@@ -188,7 +190,7 @@ def run_judgements():
     dt = datetime.now()
     indices = [f"{r['task_id']}-{r['question_type']}" for r in all_judge_results]
     postfix = generate_postfix(
-        indices, sanitize_model_name(model_name), len(inference_results), dt
+        indices, sanitize_model_name_postfix(model_name), len(inference_results), dt
     )
     out_dir = os.path.join("output", "judge")
     os.makedirs(out_dir, exist_ok=True)

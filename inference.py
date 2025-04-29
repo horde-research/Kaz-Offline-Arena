@@ -36,6 +36,8 @@ logger = logging.getLogger(__name__)
 
 def sanitize_model_name(model_id: str) -> str:
     return model_id#.replace("/", "-")
+def sanitize_model_name_postfix(model_id: str) -> str:
+    return model_id.replace("/", "-")
 
 def generate_postfix(indices: list, model_id: str, question_types: list, dt: datetime) -> str:
     indices_str = ",".join(sorted(str(x) for x in indices))
@@ -133,7 +135,7 @@ def run_inference(
 
     dt = datetime.now()
     sampled_ids = [f"{rec['task_id']}-{rec['question_type']}" for rec in outputs]
-    postfix = generate_postfix(sampled_ids, sanitize_model_name(model_id), question_types, dt)
+    postfix = generate_postfix(sampled_ids, sanitize_model_name_postfix(model_id), question_types, dt)
 
     # Compute token statistics: average and standard deviation.
     avg_tokens, avg_tokens_std = compute_token_stats(outputs)
@@ -164,7 +166,7 @@ def run_inference_huggingface(
 
     # Convert to pandas DataFrame
     df = dataset.to_pandas()
-    #df = df.iloc[:10]  # Limit to 10 rows for testing
+    df = df.iloc[:2]  # Limit to 10 rows for testing
     # mapping, prompts, _ = process_all_questions(df, question_types)
     # print(f"Generated {len(prompts)} prompts for inference.")
 # ——— INSERT ROUND-ROBIN QUESTION SELECTION HERE ———
