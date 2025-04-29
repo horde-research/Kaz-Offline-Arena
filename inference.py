@@ -341,7 +341,8 @@ def run_inference_huggingface(
         return outputs
     if model_id in ["meta-llama/Llama-3.3-70B-Instruct",
                     "meta-llama/Meta-Llama-3.1-8B-Instruct",
-                     "mistralai/Mistral-Small-24B-Instruct-2501"]:
+                     "mistralai/Mistral-Small-24B-Instruct-2501",
+                     "mistralai/Mistral-7B-v0.3"]:
         tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
 
         pipe = transformers.pipeline(
@@ -353,7 +354,7 @@ def run_inference_huggingface(
         )
 
         outputs = []
-        for rec in tqdm(mapping, desc="Llama-3.3-70B inference"):
+        for rec in tqdm(mapping, desc=f"{model_id} inference"):
 
             # build chat text with HF template
             chat_text = tokenizer.apply_chat_template(
