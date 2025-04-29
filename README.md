@@ -1,15 +1,10 @@
 # Offline Arena
 
-This project runs a single Huggingface decoder-only model over tasks defined in a CSV. For each row, it randomly samples M question types (e.g. WHY_QS, WHAT_QS, etc.) and performs inference (one output per chosen question). Then, each row-question pair is sent individually to an LLM as judge. The judge returns a chain-of-thought explanation and a score (0–100) in JSON format (validated with Pydantic). Finally, pairwise ELO ratings are computed per row and aggregated into an Excel leaderboard.
+This project runs a single Huggingface decoder-only model over tasks defined in a CSV. For each row, it  samples M question types (e.g. WHY_QS, WHAT_QS, etc.) and performs inference (one output per chosen question). Then, each row-question pair is sent individually to an LLM as judge. The judge returns a chain-of-thought explanation and a score (0–100) in JSON format (validated with Pydantic). 
 
-
-## Setup
-
-Install dependencies with Poetry:
-
+## install requirements
 ```bash
-poetry install
-poetry shell
+pip install -r requirements.txt
 ```
 
 ## Install Flash Attention
@@ -27,38 +22,20 @@ pip install flash-attn --no-build-isolation
 python -m pip install --upgrade 'optree>=0.13.0'
 ```
 
-For 70B models:
-```bash
-pip install deepspeed
-```
-
 ## Env vars
-Copy .env.template and fill in the required values
-
-
-## install requirements
-```bash
-pip install -r requirements.txt
-```
-
-
-
+Copy .env.template and fill in the required values in .env file
 
 ## Commands
 
 Run inference:
 
 ```bash
-poetry run python main.py inference --model_id="meta-llama/Llama-3.2-3B-Instruct" --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --batch_size=10
+python main.py inference --model_id="meta-llama/Llama-3.2-3B-Instruct" --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --batch_size=10
 ```
-or for multi-gpu
 
-```bash
-accelerate launch main.py inference --model_id="meta-llama/Llama-3.2-3B-Instruct" --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --batch_size=10
-```
 with nohup
 ```bash
-nohup accelerate launch main.py inference --model_id="google/gemma-2-9b-it" --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --batch_size=1 > output.log 2>&1 &
+nohup python main.py inference --model_id="issai/LLama-3.1-KazLLM-1.0-70B" --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --batch_size=1 > output.log 2>&1 &
 ```
 
 Run judge evaluations:
@@ -66,7 +43,11 @@ Run judge evaluations:
 python main.py judge
 ```
 
-Compute ELO leaderboard:
+After Judge evaluations, you will get `filename.json` in the `output/judge/` directory. You can use this file to submit your model in the [Kaz Offline Arena](https://huggingface.co/spaces/kz-transformers/kaz-offline-arena).
+
+## Note: You don't need to run the code(elo.py) below. We calculate elo in spaces leaderboard when you submit the model
+
+Compute ELO leaderboard(optionally):
 ## It's actually Bradley-Terry model as described [here]()
 ```bash
 python main.py elo
