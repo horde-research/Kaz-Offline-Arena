@@ -342,8 +342,12 @@ def run_inference_huggingface(
     if model_id in ["meta-llama/Llama-3.3-70B-Instruct",
                     "meta-llama/Meta-Llama-3.1-8B-Instruct",
                      "mistralai/Mistral-Small-24B-Instruct-2501",
-                     "mistralai/Mistral-7B-v0.3"]:
+                     "nvidia/Llama-3_1-Nemotron-51B-Instruct"]:
+        
         tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+
+        if model_id == "nvidia/Llama-3_1-Nemotron-51B-Instruct":
+            tokenizer.pad_token_id = tokenizer.eos_token_id 
 
         pipe = transformers.pipeline(
             "text-generation",
@@ -385,7 +389,7 @@ def run_inference_huggingface(
         return outputs
     # ──────────────────────────────────────────────────────────────
     if model_id in ["meta-llama/Llama-4-Scout-17B-16E-Instruct"]:
-        import torch._dynamo
+        #import torch._dynamo
         torch._dynamo.config.suppress_errors = True
         # ⚠️  Llama-4 needs the processor to build the chat template even for text-only I/O.
         processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
