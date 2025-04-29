@@ -434,7 +434,51 @@ def run_inference_huggingface(
 
         return outputs
     # ──────────────────────────────────────────────────────────────
-   
+    if model_id in ["Qwen/Qwen3-32B"]:
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_id,
+            trust_remote_code=True            # chat-template & special tokens
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            torch_dtype=torch.bfloat16,       # keeps VRAM reasonable
+            device_map="auto",
+            trust_remote_code=True
+        ).eval()
+
+        outputs = []
+        for rec in tqdm(mapping, desc=f"{model_id} inference"):
+
+            # Qwen-3 template — **text only**, no image blocks
+            messages = [{"role": "user", "content": rec["prompt"]}]
+            chat_text = tokenizer.apply_chat_template(
+                messages,
+                tokenize=False,
+                add_generation_prompt=True,
+                enable_thinking=False           # new “thinking” mode switch
+            )
+
+            inputs = tokenizer([chat_text], return_tensors="pt").to(model.device)
+
+            gen_ids = model.generate(
+                **inputs,
+                max_new_tokens=512,           # 32 k is overkill for QA
+                do_sample=False
+            )
+
+            answer_ids = gen_ids[0][inputs.input_ids.shape[-1]:]
+            answer = tokenizer.decode(answer_ids, skip_special_tokens=True).strip()
+
+            rec.update({
+                "output":       answer,
+                "tokens_count": answer_ids.size(0),
+                "model":        sanitize_model_name(model_id),
+                "generation_id": str(uuid.uuid4()),
+            })
+            outputs.append(rec)
+
+        return outputs
+     
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
