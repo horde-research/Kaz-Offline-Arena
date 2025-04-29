@@ -291,7 +291,7 @@ def run_inference_huggingface(
     
         return outputs
 
-    if model_id == "Qwen/Qwen2.5-32B-Instruct":
+    if model_id in ["Qwen/Qwen2.5-32B-Instruct", "Qwen/Qwen2.5-7B-Instruct"]:
 
         tokenizer = AutoTokenizer.from_pretrained(
             model_id,
