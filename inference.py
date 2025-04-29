@@ -337,7 +337,7 @@ def run_inference_huggingface(
             outputs.append(rec)
 
         return outputs
-    if model_id == "meta-llama/Llama-3.3-70B-Instruct":
+    if model_id in ["meta-llama/Llama-3.3-70B-Instruct","meta-llama/Meta-Llama-3.1-8B-Instruct"]:
         tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
 
         pipe = transformers.pipeline(
@@ -354,8 +354,6 @@ def run_inference_huggingface(
             # build chat text with HF template
             chat_text = tokenizer.apply_chat_template(
                 [
-                    {"role": "system",
-                     "content": "You are a pirate chatbot who always responds in pirate speak!"},
                     {"role": "user", "content": rec["prompt"]},
                 ],
                 tokenize=False,
