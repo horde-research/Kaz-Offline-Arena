@@ -13,7 +13,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential, wait_fixed
 
 
 def sanitize_model_name(model_id: str) -> str:
-    return model_id.replace("/", "-")
+    return model_id#.replace("/", "-")
 
 
 def generate_postfix(

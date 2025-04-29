@@ -4,6 +4,7 @@ import math
 import os
 import tempfile
 import uuid
+import transformers
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from datasets import load_dataset
@@ -34,7 +35,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def sanitize_model_name(model_id: str) -> str:
-    return model_id.replace("/", "-")
+    return model_id#.replace("/", "-")
 
 def generate_postfix(indices: list, model_id: str, question_types: list, dt: datetime) -> str:
     indices_str = ",".join(sorted(str(x) for x in indices))
@@ -336,7 +337,50 @@ def run_inference_huggingface(
             outputs.append(rec)
 
         return outputs
+    if model_id == "meta-llama/Llama-3.3-70B-Instruct":
+        tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
 
+        pipe = transformers.pipeline(
+            "text-generation",
+            model=model_id,
+            tokenizer=tokenizer,
+            device_map="auto",
+            model_kwargs={"torch_dtype": torch.bfloat16},
+        )
+
+        outputs = []
+        for rec in tqdm(mapping, desc="Llama-3.3-70B inference"):
+
+            # build chat text with HF template
+            chat_text = tokenizer.apply_chat_template(
+                [
+                    {"role": "system",
+                     "content": "You are a pirate chatbot who always responds in pirate speak!"},
+                    {"role": "user", "content": rec["prompt"]},
+                ],
+                tokenize=False,
+                add_generation_prompt=True,
+            )
+
+            generated = pipe(chat_text,
+                             max_new_tokens=512,
+                             do_sample=False)[0]["generated_text"]
+
+            # strip the prompt part that we sent in
+            answer = generated[len(chat_text):].strip()
+
+            rec.update(
+                {
+                    "output":       answer,
+                    "tokens_count": len(tokenizer(answer).input_ids),
+                    "model":        sanitize_model_name(model_id),
+                    "generation_id": str(uuid.uuid4()),
+                }
+            )
+            outputs.append(rec)
+
+        return outputs
+    
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
