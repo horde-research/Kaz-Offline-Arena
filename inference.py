@@ -385,6 +385,8 @@ def run_inference_huggingface(
         return outputs
     # ──────────────────────────────────────────────────────────────
     if model_id in ["meta-llama/Llama-4-Scout-17B-16E-Instruct"]:
+        import torch._dynamo
+        torch._dynamo.config.suppress_errors = True
         # ⚠️  Llama-4 needs the processor to build the chat template even for text-only I/O.
         processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
         model = Llama4ForConditionalGeneration.from_pretrained(
