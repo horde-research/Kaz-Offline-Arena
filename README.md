@@ -7,7 +7,7 @@ This project runs a single Huggingface decoder-only model over tasks defined in 
 pip install -r requirements.txt
 ```
 
-## Install Flash Attention
+## Install Flash Attention(optioanlly)
 ```bash
 apt install gcc screen htop iotop nano
 wget https://developer.download.nvidia.com/compute/cuda/12.4.0/local_installers/cuda_12.4.0_550.54.14_linux.run
@@ -24,6 +24,13 @@ python -m pip install --upgrade 'optree>=0.13.0'
 
 ## Env vars
 Copy .env.template and fill in the required values in .env file
+
+or 
+```
+touch .env
+echo "OPENAI_API_KEY=your_key_here" >> .env
+echo "HUGGINGFACE_TOKEN=your_token_here" >> .env 
+```
 
 ## Commands
 
