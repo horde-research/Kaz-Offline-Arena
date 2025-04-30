@@ -45,7 +45,25 @@ with nohup
 nohup python main.py inference --model_id="issai/LLama-3.1-KazLLM-1.0-70B" --question_types="WHY_QS,WHAT_QS,HOW_QS,DESCRIBE_QS,ANALYZE_QS" --batch_size=1 > output.log 2>&1 &
 ```
 
-Run judge evaluations:
+### Using a model with a custom chat template or special generation settings
+
+If your model needs its own chat template, prompt formatting, or generation parameters, add a dedicated block to **`inference.py`** inside `run_inference_huggingface()`.  
+Follow the pattern already used for Sherkala, Gemma-3, Qwen-2.5, etc.:
+
+```python
+# ── Custom model example ─────────────────────────────────────────────
+if model_id == "your-org/Your-Model-Name":
+    tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+    ...
+    ...
+    return outputs
+```
+
+Add further `elif` blocks for every additional custom model; keep them above the catch-all section so they’re reached first.
+
+---
+
+# Run judge evaluations:
 ```bash
 python main.py judge
 ```
